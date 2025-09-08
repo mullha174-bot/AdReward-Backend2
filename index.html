@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AdReward - টেলিগ্রাম মিনি অ্যাপ</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --primary-color: #0088cc;
+            --secondary-color: #f1f1f1;
+            --text-color: #333;
+            --background-color: #fff;
+            --card-bg: #f9f9f9;
+            --border-color: #ddd;
+            --success-color: #4CAF50;
+            --warning-color: #FF9800;
+            --error-color: #f44336;
+        }
+
+        [data-theme="dark"] {
+            --primary-color: #0088cc;
+            --secondary-color: #2d2d2d;
+            --text-color: #f1f1f1;
+            --background-color: #1e1e1e;
+            --card-bg: #2d2d2d;
+            --border-color: #444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 100%;
+            padding: 10px;
+        }
+
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+
+        .tab-container {
+            display: flex;
+            overflow-x: auto;
+            margin-bottom: 15px;
+            background-color: var(--secondary-color);
+            border-radius: 10px;
+            padding: 5px;
+        }
+
+        .tab {
+            padding: 10px 15px;
+            cursor: pointer;
+            white-space: nowrap;
+            border-radius: 8px;
+            margin: 0 2px;
+        }
+
+        .tab.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px 0;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .btn-success {
+            background-color: var(--success-color);
+        }
+
+        .btn-warning {
+            background-color: var(--warning-color);
+        }
+
+        .btn-error {
+            background-color: var(--error-color);
+        }
+
+        .balance {
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            margin: 15px 0;
+        }
+
+        .ad-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .ad-btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .history-item {
+            padding: 10px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background-color: var(--background-color);
+            color: var(--text-color);
+        }
+
+        .referral-link {
+            background-color: var(--card-bg);
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            word-break: break-all;
+        }
+
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .leaderboard-rank {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .theme-switch {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--primary-color);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .admin-section {
+            border: 2px solid var(--primary-color);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .admin-title {
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .withdrawal-item {
+            padding: 10px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 10px;
+        }
+
+        .withdrawal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .status-pending {
+            color: var(--warning-color);
+            font-weight: bold;
+        }
+
+        .status-approved {
+            color: var(--success-color);
+            font-weight: bold;
+        }
+
+        .status-rejected {
+            color: var(--error-color);
+            font-weight: bold;
+        }
+
+        .min-amount {
+            background-color: var(--warning-color);
+            color: white;
+            padding: 8px;
+            border-radius: 5px;
+            margin: 10px 0;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>AdReward</h1>
+            <p>বিজ্ঞাপন দেখে আয় করুন</p>
+        </header>
+
+        <div class="tab-container">
+            <div class="tab active" data-tab="home">হোম</div>
+            <div class="tab" data-tab="withdraw">উইথড্র</div>
+            <div class="tab" data-tab="referral">রেফার</div>
+            <div class="tab" data-tab="leaderboard">লিডারবোর্ড</div>
+            <div class="tab" data-tab="profile">প্রোফাইল</div>
+            <div class="tab" data-tab="settings">সেটিংস</div>
+            <div class="tab" data-tab="admin" id="adminTab";>এডমিন</div>
+        </div>
+
+        <!-- হোম ট্যাব -->
+        <div class="tab-content active" id="home">
+            <div class="card">
+                <div class="balance">
+                    ব্যালেন্স: <span id="userBalance">0.00</span> USDT
+                </div>
+                <p>বিজ্ঞাপন দেখে আয় করুন। প্রতিটি বিজ্ঞাপন দেখার জন্য পাবেন 0.0005 USDT</p>
+            </div>
+
+            <div class="card">
+                <h2>বিজ্ঞাপন দেখুন</h2>
+                <div class="ad-container">
+                    <div class="ad-btn" id="ad1">বিজ্ঞাপন 1</div>
+                    <div class="ad-btn" id="ad2">বিজ্ঞাপন 2</div>
+                    <div class="ad-btn" id="ad3">বিজ্ঞাপন 3</div>
+                    <div class="ad-btn" id="ad4">বিজ্ঞাপন 4</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>রিওয়ার্ড হিস্টরি</h2>
+                <div id="rewardHistory" class="loading">
+                    লোড হচ্ছে...
+                </div>
+            </div>
+        </div>
+
+        <!-- উত্তোলন ট্যাব -->
+        <div class="tab-content" id="withdraw">
+            <div class="card">
+                <h2>টাকা উত্তোলন</h2>
+                <div id="minWithdrawInfo" class="min-amount">
+                    ন্যূনতম উত্তোলনযোগ্য পরিমাণ: <span id="minWithdrawAmount">5.00</span> USDT
+                </div>
+                <div class="form-group">
+                    <label for="withdrawAmount">পরিমাণ (USDT)</label>
+                    <input type="number" id="withdrawAmount" placeholder="উত্তোলনের পরিমাণ লিখুন" step="0.01" min="5">
+                </div>
+                <div class="form-group">
+                    <label for="withdrawMethod">পদ্ধতি</label>
+                    <select id="withdrawMethod">
+                        <option value="bkash">বিকাশ</option>
+                        <option value="nagad">নগদ</option>
+                        <option value="usdt">USDT</option>
+                    </select>
+                </div>
+                <div class="form-group" id="accountNumberField">
+                    <label for="accountNumber">অ্যাকাউন্ট নম্বর</label>
+                    <input type="text" id="accountNumber" placeholder="আপনার অ্যাকাউন্ট নম্বর লিখুন">
+                </div>
+                <button class="btn" id="withdrawBtn">উত্তোলন করুন</button>
+            </div>
+
+            <div class="card">
+                <h2>উত্তোলন হিস্টরি</h2>
+                <div id="withdrawHistory" class="loading">
+                    লোড হচ্ছে...
+                </div>
+            </div>
+        </div>
+
+        <!-- রেফার ট্যাব -->
+        <div class="tab-content" id="referral">
+            <div class="card">
+                <h2>রেফার করুন এবং 0.01 USDT বোনাস পান</h2>
+                <p>আপনার রেফারেল লিংক শেয়ার করুন এবং প্রতিটি সফল রেফারেলের জন্য 0.01 USDT বোনাস পান।</p>
+                <div class="referral-link" id="referralLink">
+                    লোড হচ্ছে...
+                </div>
+                <button class="btn" id="copyLinkBtn">লিংক কপি করুন</button>
+            </div>
+
+            <div class="card">
+                <h2>রেফারেল হিস্টরি</h2>
+                <div id="referralHistory" class="loading">
+                    লোড হচ্ছে...
+                </div>
+            </div>
+        </div>
+
+        <!-- লিডারবোর্ড ট্যাব -->
+        <div class="tab-content" id="leaderboard">
+            <div class="card">
+                <h2>শীর্ষ উপার্জনকারী</h2>
+                <div id="leaderboardList" class="loading">
+                    লোড হচ্ছে...
+                </div>
+            </div>
+        </div>
+
+        <!-- প্রোফাইল ট্যাব -->
+        <div class="tab-content" id="profile">
+            <div class="card">
+                <h2>আপনার প্রোফাইল</h2>
+                <div id="userProfile" class="loading">
+                    লোড হচ্ছে...
+                </div>
+            </div>
+        </div>
+
+        <!-- সেটিংস ট্যাব -->
+        <div class="tab-content" id="settings">
+            <div class="card">
+                <h2>থিম সেটিংস</h2>
+                <div class="theme-switch">
+                    <span>ডার্ক মোড</span>
+                    <label class="switch">
+                        <input type="checkbox" id="themeSwitch">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>ভাষা</h2>
+                <div class="form-group">
+                    <select id="languageSelect">
+                        <option value="bn">বাংলা</option>
+                        <option value="en">English</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- এডমিন ট্যাব -->
+        <div class="tab-content" id="admin">
+            <div class="admin-section">
+                <h2 class="admin-title">এডমিন প্যানেল</h2>
+                
+                <div class="card">
+                    <h3>বিজ্ঞাপন SDK সেটিংস</h3>
+                    <div class="form-group">
+                        <label for="ad1Sdk">বিজ্ঞাপন 1 SDK</label>
+                        <input type="text" id="ad1Sdk" placeholder="বিজ্ঞাপন 1 এর SDK লিখুন">
+                    </div>
+                    <div class="form-group">
+                        <label for="ad2Sdk">বিজ্ঞাপন 2 SDK</label>
+                        <input type="text" id="ad2Sdk" placeholder="বিজ্ঞাপন 2 এর SDK লিখুন">
+                    </div>
+                    <div class="form-group">
+                        <label for="ad3Sdk">বিজ্ঞাপন 3 SDK</label>
+                        <input type="text" id="ad3Sdk" placeholder="বিজ্ঞাপন 3 এর SDK লিখুন">
+                    </div>
+                    <div class="form-group">
+                        <label for="ad4Sdk">বিজ্ঞাপন 4 SDK</label>
+                        <input type="text" id="ad4Sdk" placeholder="বিজ্ঞাপন 4 এর SDK লিখুন">
+                    </div>
+                    <button class="btn" id="saveSdkBtn">SDK সেভ করুন</button>
+                </div>
+
+                <div class="card">
+                    <h3>সিস্টেম সেটিংস</h3>
+                    <div class="form-group">
+                        <label for="minWithdrawSetting">ন্যূনতম উত্তোলন পরিমাণ (USDT)</label>
+                        <input type="number" id="minWithdrawSetting" step="0.01" min="0">
+                    </div>
+                    <button class="btn" id="saveMinWithdrawBtn">সেভ করুন</button>
+                </div>
+
+                <div class="card">
+                    <h3>সিস্টেম স্ট্যাটাস</h3>
+                    <div id="systemStats" class="loading">
+                        লোড হচ্ছে...
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>উত্তোলন রিকোয়েস্ট ম্যানেজমেন্ট</h3>
+                    <div id="withdrawalRequests" class="loading">
+                        লোড হচ্ছে...
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>ব্যবহারকারী ম্যানেজমেন্ট</h3>
+                    <div class="form-group">
+                        <input type="text" id="searchUser" placeholder="ব্যবহারকারী খুঁজুন">
+                    </div>
+                    <div id="userManagement" class="loading">
+                        লোড হচ্ছে...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // টেলিগ্রাম WebApp ইনিশিয়ালাইজেশন
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+        
+        // API বেস URL
+        const API_BASE = 'https://adreward-backend.onrender.com'; // আপনার ডোমেইন দিয়ে পরিবর্তন করুন
+        
+        // ব্যবহারকারীর ডেটা
+        let userData = {
+            id: tg.initDataUnsafe.user?.id || null,
+            username: tg.initDataUnsafe.user?.username || '',
+            first_name: tg.initDataUnsafe.user?.first_name || '',
+            last_name: tg.initDataUnsafe.user?.last_name || '',
+            balance: 0,
+            adsWatched: 0,
+            earned: 0,
+            referred: 0,
+            theme: 'light',
+            is_admin: false
+        };
+
+        // সিস্টেম সেটিংস
+        let systemSettings = {
+            min_withdraw_amount: 5.00
+        };
+
+        // SDK কনফিগারেশন
+        let adSdks = {
+            ad1: '',
+            ad2: '',
+            ad3: '',
+            ad4: ''
+        };
+
+        // DOM কনটেন্ট লোড হওয়ার পর কাজগুলো করবে
+        document.addEventListener('DOMContentLoaded', function() {
+            // ব্যবহারকারীর ডেটা লোড করুন
+            initUser();
+            
+            // ট্যাব নেভিগেশন সেটআপ
+            setupTabs();
+            
+            // বিজ্ঞাপন বাটন সেটআপ
+            setupAdButtons();
+            
+            // উত্তোলন ফর্ম সেটআপ
+            setupWithdrawal();
+            
+            // রেফারেল সিস্টেম সেটআপ
+            setupReferral();
+            
+            // থিম স্যুইচ সেটআপ
+            setupTheme();
+            
+            // এডমিন প্যানেল সেটআপ (শুধুমাত্র এডমিনদের জন্য)
+            setupAdminPanel();
+        });
+
+        // ব্যবহারকারী ইনিশিয়ালাইজেশন
+        async function initUser() {
+            try {
+                // টেলিগ্রাম অথেন্টিকেশন ডেটা
+                const initData = tg.initData;
+                
+                // ব্যবহারকারীর ডেটা লোড করুন
+                const response = await fetch(`${API_BASE}/user`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `tma ${initData}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    userData = { ...userData, ...data };
+                    
+                    // সিস্টেম সেটিংস লোড করুন
+                    await loadSystemSettings();
+                    
+                    // এডমিন ট্যাব দেখান যদি ব্যবহারকারী এডমিন হয়
+                    if (userData.is_admin) {
+                        document.getElementById('adminTab').style.display = 'block';
+                    }
+                    
+                    // UI আপডেট করুন
+                    updateUI();
+                } else {
+                    console.error('ব্যবহারকারী ডেটা লোড করতে সমস্যা হয়েছে');
+                }
+            } catch (error) {
+                console.error('নেটওয়ার্ক ত্রুটি:', error);
+            }
+        }
+
+        // সিস্টেম সেটিংস লোড করুন
+        async function loadSystemSettings() {
+            try {
+                const response = await fetch(`${API_BASE}/system-settings`);
+                if (response.ok) {
+                    const settings = await response.json();
+                    systemSettings = settings;
+                    
+                    // ন্যূনতম উত্তোলন পরিমাণ আপডেট করুন
+                    document.getElementById('minWithdrawAmount').textContent = systemSettings.min_withdraw_amount.toFixed(2);
+                    document.getElementById('withdrawAmount').min = systemSettings.min_withdraw_amount;
+                    
+                    // এডমিন প্যানেলে সেটিংস দেখান
+                    if (userData.is_admin) {
+                        document.getElementById('minWithdrawSetting').value = systemSettings.min_withdraw_amount;
+                    }
+                }
+            } catch (error) {
+                console.error('সিস্টেম সেটিংস লোড করতে ত্রুটি:', error);
+            }
+        }
+
+        // ট্যাব নেভিগেশন সেটআপ
+        function setupTabs() {
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    // সক্রিয় ট্যাব আপডেট করুন
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    
+                    // সক্রিয় কনটেন্ট আপডেট করুন
+                    const tabId = tab.getAttribute('data-tab');
+                    document.querySelectorAll('.tab-content').forEach(content => {
+                        content.classList.remove('active');
+                    });
+                    document.getElementById(tabId).classList.add('active');
+                    
+                    // নির্দিষ্ট ট্যাবের জন্য অতিরিক্ত লোডিং
+                    if (tabId === 'leaderboard') {
+                        loadLeaderboard();
+                    } else if (tabId === 'profile') {
+                        loadProfile();
+                    } else if (tabId === 'withdraw') {
+                        loadWithdrawalHistory();
+                    } else if (tabId === 'referral') {
+                        loadReferralInfo();
+                    } else if (tabId === 'admin') {
+                        loadAdminData();
+                    }
+                });
+            });
+        }
+
+        // বিজ্ঞাপন বাটন সেটআপ
+        function setupAdButtons() {
+            const adButtons = ['ad1', 'ad2', 'ad3', 'ad4'];
+            adButtons.forEach(adId => {
+                document.getElementById(adId).addEventListener('click', () => {
+                    watchAd(adId);
+                });
+            });
+        }
+
+        // বিজ্ঞাপন দেখার ফাংশন
+        async function watchAd(adId) {
+            try {
+                // SDK লোড করুন এবং বিজ্ঞাপন দেখান
+                const sdkUrl = adSdks[adId];
+                if (sdkUrl) {
+                    // লোডিং ইফেক্ট
+                    const adBtn = document.getElementById(adId);
+                    const originalText = adBtn.textContent;
+                    adBtn.textContent = 'লোড হচ্ছে...';
+                    adBtn.style.opacity = '0.7';
+                    
+                    // সার্ভারে বিজ্ঞাপন দেখার রিকোয়েস্ট পাঠান
+                    const response = await fetch(`${API_BASE}/watch-ad`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `tma ${tg.initData}`
+                        },
+                        body: JSON.stringify({
+                            ad_id: adId
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        const result = await response.json();
+                        
+                        // ব্যালেন্স আপডেট করুন
+                        userData.balance = result.balance;
+                        userData.adsWatched = result.ads_watched;
+                        userData.earned = result.total_earned;
+                        
+                        // UI আপডেট করুন
+                        updateUI();
+                        
+                        // রিওয়ার্ড হিস্টরি আপডেট করুন
+                        loadRewardHistory();
+                        
+                        alert(`সফলভাবে বিজ্ঞাপন দেখেছেন! আপনি পেয়েছেন ${result.reward} USDT`);
+                    } else {
+                        alert('বিজ্ঞাপন দেখতে সমস্যা হয়েছে। পরে আবার চেষ্টা করুন।');
+                    }
+                    
+                    // বিজ্ঞাপন বাটন রিসেট করুন
+                    adBtn.textContent = originalText;
+                    adBtn.style.opacity = '1';
+                } else {
+                    alert('এই বিজ্ঞাপনটি এখন উপলব্ধ নেই।');
+                }
+            } catch (error) {
+                console.error('বিজ্ঞাপন দেখতে ত্রুটি:', error);
+                alert('নেটওয়ার্ক ত্রুটি। পরে আবার চেষ্টা করুন।');
+            }
+        }
+
+        // উত্তোলন সিস্টেম সেটআপ
+        function setupWithdrawal() {
+            document.getElementById('withdrawBtn').addEventListener('click', async () => {
+                const amount = parseFloat(document.getElementById('withdrawAmount').value);
+                const method = document.getElementById('withdrawMethod').value;
+                const account = document.getElementById('accountNumber').value;
+                
+                if (!amount || amount <= 0) {
+                    alert('দয়া করে একটি বৈধ উত্তোলনের পরিমাণ লিখুন।');
+                    return;
+                }
+                
+                if (amount < systemSettings.min_withdraw_amount) {
+                    alert(`ন্যূনতম উত্তোলন পরিমাণ ${systemSettings.min_withdraw_amount} USDT`);
+                    return;
+                }
+                
+                if (amount > userData.balance) {
+                    alert('আপনার পর্যাপ্ত ব্যালেন্স নেই।');
+                    return;
+                }
+                
+                if (!account) {
+                    alert('দয়া করে আপনার অ্যাকাউন্ট নম্বর লিখুন।');
+                    return;
+                }
+                
+                try {
+                    // উত্তোলন রিকোয়েস্ট পাঠান
+                    const response = await fetch(`${API_BASE}/withdraw`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `tma ${tg.initData}`
+                        },
+                        body: JSON.stringify({
+                            amount: amount,
+                            method: method,
+                            account: account
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        const result = await response.json();
+                        
+                        // ব্যালেন্স আপডেট করুন
+                        userData.balance = result.balance;
+                        
+                        // UI আপডেট করুন
+                        updateUI();
+                        
+                        // উত্তোলন হিস্টরি আপডেট করুন
+                        loadWithdrawalHistory();
+                        
+                        alert(`আপনার উত্তোলন অনুরোধ প্রক্রিয়াধীন রয়েছে। ${amount} USDT`);
+                        
+                        // ফর্ম রিসেট করুন
+                        document.getElementById('withdrawAmount').value = '';
+                        document.getElementById('accountNumber').value = '';
+                    } else {
+                        const error = await response.json();
+                        alert(error.error || 'উত্তোলন করতে সমস্যা হয়েছে। পরে আবার চেষ্টা করুন।');
+                    }
+                } catch (error) {
+                    console.error('উত্তোলন ত্রুটি:', error);
+                    alert('নেটওয়ার্ক ত্রুটি। পরে আবার চেষ্টা করুন।');
+                }
+            });
+            
+            // পদ্ধতি পরিবর্তন হলে অ্যাকাউন্ট নম্বর ফিল্ড আপডেট করুন
+            document.getElementById('withdrawMethod').addEventListener('change', function() {
+                const method = this.value;
+                const accountField = document.getElementById('accountNumberField');
+                
+                if (method === 'usdt') {
+                    accountField.querySelector('label').textContent = 'USDT ওয়ালেট ঠিকানা';
+                    document.getElementById('accountNumber').placeholder = 'আপনার USDT ওয়ালেট ঠিকানা লিখুন';
+                } else {
+                    accountField.querySelector('label').textContent = 'অ্যাকাউন্ট নম্বর';
+                    document.getElementById('accountNumber').placeholder = 'আপনার অ্যাকাউন্ট নম্বর লিখুন';
+                }
+            });
+        }
+
+        // রেফারেল সিস্টেম সেটআপ
+        function setupReferral() {
+            // রেফারেল লিংক সেট করুন
+            const referralLink = `https://t.me/YourBotName?start=${userData.id}`;
+            document.getElementById('referralLink').textContent = referralLink;
+            
+            // লিংক কপি বাটন
+            document.getElementById('copyLinkBtn').addEventListener('click', () => {
+                navigator.clipboard.writeText(referralLink)
+                    .then(() => alert('রেফারেল লিংক কপি করা হয়েছে!'))
+                    .catch(err => console.error('লিংক কপি করতে সমস্যা হয়েছে:', err));
+            });
+            
+            // URL প্যারামিটার চেক করুন যাতে রেফারেল কোড আছে কিনা
+            const urlParams = new URLSearchParams(window.location.search);
+            const refCode = urlParams.get('ref');
+            if (refCode && refCode !== userData.id.toString()) {
+                // রেফারেল বোনাস দিন
+                applyReferralBonus(refCode);
+            }
+        }
+
+        // রেফারেল বোনাস প্রয়োগ করুন
+        async function applyReferralBonus(refCode) {
+            try {
+                const response = await fetch(`${API_BASE}/apply-referral`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `tma ${tg.initData}`
+                    },
+                    body: JSON.stringify({
+                        referrer_id: refCode
+                    })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success) {
+                        userData.balance += 0.01;
+                        updateUI();
+                        alert('রেফারেল বোনাস পেয়েছেন! 0.01 USDT');
+                    }
+                }
+            } catch (error) {
+                console.error('রেফারেল বোনাস প্রয়োগ করতে ত্রুটি:', error);
+            }
+        }
+
+        // থিম স্যুইচ সেটআপ
+        function setupTheme() {
+            const themeSwitch = document.getElementById('themeSwitch');
+            
+            // পূর্বনির্ধারিত থিম সেট করুন
+            if (userData.theme === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                themeSwitch.checked = true;
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+                themeSwitch.checked = false;
+            }
+            
+            // থিম স্যুইচ ইভেন্ট
+            themeSwitch.addEventListener('change', async function() {
+                const newTheme = this.checked ? 'dark' : 'light';
+                
+                try {
+                    // থিম আপডেট করুন সার্ভারে
+                    const response = await fetch(`${API_BASE}/update-theme`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `tma ${tg.initData}`
+                        },
+                        body: JSON.stringify({
+                            theme: newTheme
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        document.documentElement.setAttribute('data-theme', newTheme);
+                        userData.theme = newTheme;
+                    }
+                } catch (error) {
+                    console.error('থিম আপডেট করতে ত্রুটি:', error);
+                }
+            });
+        }
+
+        // এডমিন প্যানেল সেটআপ
+        function setupAdminPanel() {
+            // SDK সেভ বাটন
+            document.getElementById('saveSdkBtn').addEventListener('click', async () => {
+                const newSdks = {
+                    ad1: document.getElementById('ad1Sdk').value,
+                    ad2: document.getElementById('ad2Sdk').value,
+                    ad3: document.getElementById('ad3Sdk').value,
+                    ad4: document.getElementById('ad4Sdk').value
+                };
+                
+                try {
+                    // SDK কনফিগারেশন সেভ করুন
+                    const response = await fetch(`${API_BASE}/admin/update-sdks`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `tma ${tg.initData}`
+                        },
+                        body: JSON.stringify(newSdks)
+                    });
+                    
+                    if (response.ok) {
+                        adSdks = newSdks;
+                        alert('SDK কনফিগারেশন সফলভাবে সেভ করা হয়েছে!');
+                    } else {
+                        alert('SDK সেভ করতে সমস্যা হয়েছে।');
+                    }
+                } catch (error) {
+                    console.error('SDK সেভ করতে ত্রুটি:', error);
+                    alert('নেটওয়ার্ক ত্রুটি। পরে আবার চেষ্টা করুন।');
+                }
+            });
+            
+            // ন্যূনতম উত্তোলন পরিমাণ সেভ বাটন
+            document.getElementById('saveMinWithdrawBtn').addEventListener('click', async () => {
+                const minWithdraw = parseFloat(document.getElementById('minWithdrawSetting').value);
+                
+                if (!minWithdraw || minWithdraw < 0) {
+                    alert('দয়া করে একটি বৈধ ন্যূনতম উত্তোলন পরিমাণ লিখুন।');
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(`${API_BASE}/admin/update-min-withdraw`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `tma ${tg.initData}`
+                        },
+                        body: JSON.stringify({
+                            min_withdraw_amount: minWithdraw
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        systemSettings.min_withdraw_amount = minWithdraw;
+                        document.getElementById('minWithdrawAmount').textContent = minWithdraw.toFixed(2);
+                        document.getElementById('withdrawAmount').min = minWithdraw;
+                        alert('ন্যূনতম উত্তোলন পরিমাণ সফলভাবে আপডেট করা হয়েছে!');
+                    } else {
+                        alert('ন্যূনতম উত্তোলন পরিমাণ আপডেট করতে সমস্যা হয়েছে।');
+                    }
+                } catch (error) {
+                    console.error('ন্যূনতম উত্তোলন পরিমাণ আপডেট করতে ত্রুটি:', error);
+                    alert('নেটওয়ার্ক ত্রুটি। পরে আবার চেষ্টা করুন।');
+                }
+            });
+        }
+
+        // UI আপডেট করার ফাংশন
+        function updateUI() {
+            // ব্যালেন্স আপডেট করুন
+            document.getElementById('userBalance').textContent = userData.balance.toFixed(4);
+            
+            // রিওয়ার্ড হিস্টরি লোড করুন
+            loadRewardHistory();
+        }
+
+        // রিওয়ার্ড হিস্টরি লোড করার ফাংশন
+        async function loadRewardHistory() {
+            try {
+                const response = await fetch(`${API_BASE}/reward-history`, {
+                    headers: {
+                        'Authorization': `tma ${tg.initData}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const history = await response.json();
+                    const historyContainer = document.getElementById('rewardHistory');
+                    
+                    if (history.length === 0) {
+                        historyContainer.innerHTML = '<p>কোনো রিওয়ার্ড হিস্টরি নেই।</p>';
+                        return;
+                    }
+                    
+                    let html = '';
+                    history.slice(-10).reverse().forEach(item => {
+                        html += `
+                            <div class="history-item">
+                                <div>বিজ্ঞাপন ${item.ad_id}</div>
+                                <div>+${item.amount} USDT</div>
+                                <div>${new Date(item.created_at).toLocaleString()}</div>
+                            </div>
+                        `;
+                    });
+                    
+                    historyContainer.innerHTML = html;
+                }
+            } catch (error) {
+                console.error('রিওয়ার্ড হিস্টরি লোড করতে ত্রুটি:', error);
+            }
+        }
+
+        // উত্তোলন হিস্টরি লোড করার ফUNCTION
+        async function loadWithdrawalHistory() {
+            try {
+                const response = await fetch(`${API_BASE}/withdrawal-history`, {
+                    headers: {
+                        'Authorization': `tma ${tg.initData}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const history = await response.json();
+                    const historyContainer = document.getElementById('withdrawHistory');
+                    
+                    if (history.length === 0) {
+                        historyContainer.innerHTML = '<p>কোনো উত্তোলন হিস্টরি নেই।</p>';
+                        return;
+                    }
+                    
+                    let html = '';
+                    history.slice(-10).reverse().forEach(item => {
+                        const statusClass = `status-${item.status}`;
+                        html += `
+                            <div class="history-item">
+                                <div>${item.method} - ${item.account_number}</div>
+                                <div>-${item.amount} USDT</div>
+                                <div class="${statusClass}">${item.status}</div>
+                                <div>${new Date(item.created_at).toLocaleString()}</div>
+                            </div>
+                        `;
+                    });
+                    
+                    historyContainer.innerHTML = html;
+                }
+            } catch (error) {
+                console.error('উত্তোলন হিস্টরি লোড করতে ত্রুটি:', error);
+            }
+        }
+
+        // রেফারেল তথ্য লোড করার ফাংশন
+        async function loadReferralInfo() {
+            try {
+                const response = await fetch(`${API_BASE}/referral-info`, {
+                    headers: {
+                        'Authorization': `tma ${tg.initData}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const historyContainer = document.getElementById('referralHistory');
+                    
+                    if (data.referrals.length === 0) {
+                        historyContainer.innerHTML = '<p>কোনো রেফারেল হিস্টরি নেই।</p>';
+                        return;
+                    }
+                    
+                    let html = '';
+                    data.referrals.slice(-10).reverse().forEach(item => {
+                        html += `
+                            <div class="history-item">
+                                <div>রেফারেল বোনাস</div>
+                                <div>+${item.amount} USDT</div>
+                                <div>${new Date(item.created_at).toLocaleString()}</div>
+                            </div>
+                        `;
+                    });
+                    
+                    historyContainer.innerHTML = html;
+                }
+            } catch (error) {
+                console.error('রেফারেল তথ্য লোড করতে ত্রুটি:', error);
+            }
+        }
+
+        // লিডারবোর্ড লোড করার ফাংশন
+        async function loadLeaderboard() {
+            try {
+                const response = await fetch(`${API_BASE}/leaderboard`);
+                
+                if (response.ok) {
+                    const leaderboard = await response.json();
+                    const leaderboardContainer = document.getElementById('leaderboardList');
+                    
+                    let html = '';
+                    leaderboard.forEach((user, index) => {
+                        const isCurrentUser = user.telegram_id === userData.id;
+                        html += `
+                            <div class="leaderboard-item" style="${isCurrentUser ? 'background-color: var(--card-bg);' : ''}">
+                                <div>
+                                    <span class="leaderboard-rank">#${index + 1}</span>
+                                    <span>${isCurrentUser ? 'You' : user.username}</span>
+                                </div>
+                                <div>${user.ads_watched} ads - ${user.total_earned.toFixed(2)} USDT</div>
+                            </div>
+                        `;
+                    });
+                    
+                    leaderboardContainer.innerHTML = html;
+                }
+            } catch (error) {
+                console.error('লিডারবোর্ড লোড করতে ত্রুটি:', error);
+            }
+        }
+
+        // প্রোফাইল লোড করার ফাংশন
+        async function loadProfile() {
+            const profileContainer = document.getElementById('userProfile');
+            
+            const html = `
+                <div class="history-item">
+                    <div>নাম:</div>
+                    <div>${userData.first_name} ${userData.last_name}</div>
+                </div>
+                <div class="history-item">
+                    <div>ব্যবহারকারী আইডি:</div>
+                    <div>${userData.id}</div>
+                </div>
+                <div class="history-item">
+                    <div>মোট আয়:</div>
+                    <div>${userData.earned.toFixed(4)} USDT</div>
+                </div>
+                <div class="history-item">
+                    <div>দেখা বিজ্ঞাপন:</div>
+                    <div>${userData.adsWatched}</div>
+                </div>
+                <div class="history-item">
+                    <div>রেফার করা用户:</div>
+                    <div>${userData.referred}</div>
+                </div>
+            `;
+            
+            profileContainer.innerHTML = html;
+        }
+
+        // এডমিন ডেটা লোড করার ফাংশন
+        async function loadAdminData() {
+            try {
+                // SDK মানগুলো লোড করুন
+                const response = await fetch(`${API_BASE}/admin/sdks`, {
+                    headers: {
+                        'Authorization': `tma ${tg.initData}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const sdks = await response.json();
+                    document.getElementById('ad1Sdk').value = sdks.ad1;
+                    document.getElementById('ad2Sdk').value = sdks.ad2;
+                    document.getElementById('ad3Sdk').value = sdks.ad3;
+                    document.getElementById('ad4Sdk').value = sdks.ad4;
+                    
+                    adSdks = sdks;
+                }
+                
+                // সিস্টেম স্ট্যাটাস লোড করুন
+                const statsResponse = await fetch(`${API_BASE}/admin/stats`, {
+                    headers: {
+                        'Authorization': `tma ${tg.initData}`
+                    }
+                });
+                
+                if (statsResponse.ok) {
+                    const stats = await statsResponse.json();
+                    const statsContainer = document.getElementById('systemStats');
+                    
+                    const html = `
+                        <div class="history-item">
+                            <div>মোট ব্যবহারকারী:</div>
+                            <div>${stats.total_users}</div>
+                        </div>
+                        <div class="history-item">
+                            <div>মোট বিজ্ঞাপন দেখা:</div>
+                            <div>${stats.total_ads_watched}</div>
+                        </div>
+                        <div class="history-item">
+                            <div>মোট উত্তোলন:</div>
+                            <div>${stats.total_withdrawals} USDT</div>
+                        </div>
+                        <div class="history-item">
+                            <div>মোট রেফারেল:</div>
+                            <div>${stats.total_referrals}</div>
+                        </div>
+                    `;
+                    
+                    statsContainer.innerHTML = html;
+                }
+                
+                // উত্তোলন রিকোয়েস্ট লোড করুন
+                await loadWithdrawalRequests();
+            } catch (error) {
+                console.error('এডমিন ডেটা লোড করতে ত্রুটি:', error);
+            }
+        }
+
+        // উত্তোলন রিকোয়েস্ট লোড করার ফাংশন
+        async function loadWithdrawalRequests() {
+            try {
+                const response = await fetch(`${API_BASE}/admin/withdrawal-requests`, {
+                    headers: {
+                        'Authorization': `tma ${tg.initData}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const requests = await response.json();
+                    const requestsContainer = document.getElementById('withdrawalRequests');
+                    
+                    if (requests.length === 0) {
+                        requestsContainer.innerHTML = '<p>কোনো উত্তোলন রিকোয়েস্ট নেই।</p>';
+                        return;
+                    }
+                    
+                    let html = '';
+                    requests.forEach(request => {
+                        const statusClass = `status-${request.status}`;
+                        html += `
+                            <div class="withdrawal-item">
+                                <div><strong>ব্যবহারকারী:</strong> ${request.username} (ID: ${request.user_id})</div>
+                                <div><strong>পরিমাণ:</strong> ${request.amount} USDT</div>
+                                <div><strong>পদ্ধতি:</strong> ${request.method}</div>
+                                <div><strong>অ্যাকাউন্ট:</strong> ${request.account_number}</div>
+                                <div><strong>স্ট্যাটাস:</strong> <span class="${statusClass}">${request.status}</span></div>
+                                <div><strong>তারিখ:</strong> ${new Date(request.created_at).toLocaleString()}</div>
+                                ${request.status === 'pending' ? `
+                                <div class="withdrawal-actions">
+                                    <button class="btn btn-success" onclick="approveWithdrawal(${request.id})">অনুমোদন করুন</button>
+                                    <button class="btn btn-error" onclick="rejectWithdrawal(${request.id})">প্রত্যাখ্যান করুন</button>
+                                </div>
+                                ` : ''}
+                            </div>
+                        `;
+                    });
+                    
+                    requestsContainer.innerHTML = html;
+                }
+            } catch (error) {
+                console.error('উত্তোলন রিকোয়েস্ট লোড করতে ত্রুটি:', error);
+            }
+        }
+
+        // উত্তোলন অনুমোদন করুন
+        async function approveWithdrawal(requestId) {
+            try {
+                const response = await fetch(`${API_BASE}/admin/approve-withdrawal`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `tma ${tg.initData}`
+                    },
+                    body: JSON.stringify({
+                        request_id: requestId
+                    })
+                });
+                
+                if (response.ok) {
+                    alert('উত্তোলন অনুমোদন করা হয়েছে!');
+                    loadWithdrawalRequests();
+                } else {
+                    alert('উত্তোলন অনুমোদন করতে সমস্যা হয়েছে।');
+                }
+            } catch (error) {
+                console.error('উত্তোলন অনুমোদন করতে ত্রুটি:', error);
+                alert('নেটওয়ার্ক ত্রুটি। পরে আবার চেষ্টা করুন।');
+            }
+        }
+
+        // উত্তোলন প্রত্যাখ্যান করুন
+        async function rejectWithdrawal(requestId) {
+            try {
+                const response = await fetch(`${API_BASE}/admin/reject-withdrawal`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `tma ${tg.initData}`
+                    },
+                    body: JSON.stringify({
+                        request_id: requestId
+                    })
+                });
+                
+                if (response.ok) {
+                    alert('উত্তোলন প্রত্যাখ্যান করা হয়েছে!');
+                    loadWithdrawalRequests();
+                } else {
+                    alert('উত্তোলন প্রত্যাখ্যান করতে সমস্যা হয়েছে।');
+                }
+            } catch (error) {
+                console.error('উত্তোলন প্রত্যাখ্যান করতে ত্রুটি:', error);
+                alert('নেটওয়ার্ক ত্রুটি। পরে আবার চেষ্টা করুন।');
+            }
+        }
+
+        // টেলিগ্রাম বটের সাথে ইন্টিগ্রেশন
+        tg.ready();
+    </script>
+</body>
+</html>
