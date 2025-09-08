@@ -982,7 +982,7 @@
         // রিওয়ার্ড হিস্টরি লোড করার ফাংশন
         async function loadRewardHistory() {
             try {
-                const response = await fetch(`${API_BASE}/reward-history`, {
+               const response = await fetch(`${API_BASE}/api/reward-history`, {
                     headers: {
                         'Authorization': `tma ${tg.initData}`
                     }
