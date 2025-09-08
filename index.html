@@ -562,40 +562,51 @@
 
         // ব্যবহারকারী ইনিশিয়ালাইজেশন
         async function initUser() {
-            try {
-                // টেলিগ্রাম অথেন্টিকেশন ডেটা
-                const initData = tg.initData;
-                
-                // ব্যবহারকারীর ডেটা লোড করুন
-                const response = await fetch(`${API_BASE}/api/user`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `tma ${initData}`
-                    }
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    userData = { ...userData, ...data };
-                    
-                    // সিস্টেম সেটিংস লোড করুন
-                    await loadSystemSettings();
-                    
-                    // এডমিন ট্যাব দেখান যদি ব্যবহারকারী এডমিন হয়
-                    if (userData.is_admin) {
-                        document.getElementById('adminTab').style.display = 'block';
-                    }
-                    
-                    // UI আপডেট করুন
-                    updateUI();
-                } else {
-                    console.error('ব্যবহারকারী ডেটা লোড করতে সমস্যা হয়েছে');
-                }
-            } catch (error) {
-                console.error('নেটওয়ার্ক ত্রুটি:', error);
-            }
+    try {
+        // টেলিগ্রাম থেকে ব্যবহারকারীর ডেটা নেওয়া হচ্ছে
+        const user = tg.initDataUnsafe.user;
+
+        if (!user || !user.id) {
+            console.error('Telegram user data not available.');
+            alert('Could not get user data from Telegram.');
+            return;
         }
+        
+        // সার্ভারে ডেটা পাঠানো হচ্ছে
+        const response = await fetch(`${API_BASE}/api/user`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            // এই body অংশটি যোগ করা হয়েছে
+            body: JSON.stringify({
+                id: user.id,
+                username: user.username,
+                first_name: user.first_name
+            })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            userData = { ...userData, ...data };
+            
+            // এডমিন ট্যাব দেখানোর লজিক
+            if (userData.is_admin) {
+                document.getElementById('adminTab').style.display = 'block';
+            }
+            
+            // আপনার কোডে এই ফাংশনটি থাকলে UI আপডেট হবে
+            if (typeof updateUI === 'function') {
+                updateUI();
+            }
+
+        } else {
+            console.error('ব্যবহারকারীর ডেটা লোড করতে সমস্যা হয়েছে', response.status, await response.text());
+        }
+    } catch (error) {
+        console.error('নেটওয়ার্ক ত্রুটি:', error);
+    }
+}
 
         // সিস্টেম সেটিংস লোড করুন
         async function loadSystemSettings() {
