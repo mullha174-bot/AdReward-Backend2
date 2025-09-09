@@ -502,813 +502,171 @@
     </div>
 
     <script>
-        // টেলিগ্রাম WebApp ইনিশিয়ালাইজেশন
-        let tg = window.Telegram.WebApp;
-        tg.expand();
-        
-        // API বেস URL
-        const API_BASE = 'https://adreward-backend.onrender.com'; // আপনার ডোমেইন দিয়ে পরিবর্তন করুন
-        
-        // ব্যবহারকারীর ডেটা
-        let userData = {
-            id: tg.initDataUnsafe.user?.id || null,
-            username: tg.initDataUnsafe.user?.username || '',
-            first_name: tg.initDataUnsafe.user?.first_name || '',
-            last_name: tg.initDataUnsafe.user?.last_name || '',
-            balance: 0,
-            adsWatched: 0,
-            earned: 0,
-            referred: 0,
-            theme: 'light',
-            is_admin: false
-        };
+    let tg = window.Telegram.WebApp;
+    tg.expand();
+    
+    const API_BASE = 'https://adreward-backend.onrender.com';
+    let userData = {};
 
-        // সিস্টেম সেটিংস
-        let systemSettings = {
-            min_withdraw_amount: 5.00
-        };
+    document.addEventListener('DOMContentLoaded', init);
 
-        // SDK কনফিগারেশন
-        let adSdks = {
-            ad1: '',
-            ad2: '',
-            ad3: '',
-            ad4: ''
-        };
+    function init() {
+        initUser();
+        setupTabs();
+        setupAdButtons();
+        setupAdminPanel();
+    }
 
-        // DOM কনটেন্ট লোড হওয়ার পর কাজগুলো করবে
-        document.addEventListener('DOMContentLoaded', function() {
-            // ব্যবহারকারীর ডেটা লোড করুন
-            initUser();
+    async function initUser() {
+        try {
+            const user = tg.initDataUnsafe.user;
+            if (!user || !user.id) return alert('Could not get user data from Telegram.');
             
-            // ট্যাব নেভিগেশন সেটআপ
-            setupTabs();
+            const response = await fetch(`${API_BASE}/api/user`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: user.id, username: user.username, first_name: user.first_name })
+            });
             
-            // বিজ্ঞাপন বাটন সেটআপ
-            setupAdButtons();
+            if (!response.ok) throw new Error('Failed to load user data');
+            userData = await response.json();
             
-            // উত্তোলন ফর্ম সেটআপ
-            setupWithdrawal();
-            
-            // রেফারেল সিস্টেম সেটআপ
-            setupReferral();
-            
-            // থিম স্যুইচ সেটআপ
-            setupTheme();
-            
-            // এডমিন প্যানেল সেটআপ (শুধুমাত্র এডমিনদের জন্য)
-            setupAdminPanel();
-        });
-
-        // ব্যবহারকারী ইনিশিয়ালাইজেশন
-        async function initUser() {
-    try {
-        // টেলিগ্রাম থেকে ব্যবহারকারীর ডেটা নেওয়া হচ্ছে
-        const user = tg.initDataUnsafe.user;
-
-        if (!user || !user.id) {
-            console.error('Telegram user data not available.');
-            alert('Could not get user data from Telegram.');
-            return;
-        }
-        
-        // সার্ভারে ডেটা পাঠানো হচ্ছে
-        const response = await fetch(`${API_BASE}/api/user`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            // এই body অংশটি যোগ করা হয়েছে
-            body: JSON.stringify({
-                id: user.id,
-                username: user.username,
-                first_name: user.first_name
-            })
-        });
-        
-        if (response.ok) {
-            const data = await response.json();
-            userData = { ...userData, ...data };
-            
-            // এডমিন ট্যাব দেখানোর লজিক
             if (userData.is_admin) {
                 document.getElementById('adminTab').style.display = 'block';
             }
-            
-            // আপনার কোডে এই ফাংশনটি থাকলে UI আপডেট হবে
-            if (typeof updateUI === 'function') {
-                updateUI();
-            }
-
-        } else {
-            console.error('ব্যবহারকারীর ডেটা লোড করতে সমস্যা হয়েছে', response.status, await response.text());
+            updateUI();
+        } catch (error) {
+            console.error('initUser error:', error);
         }
-    } catch (error) {
-        console.error('নেটওয়ার্ক ত্রুটি:', error);
     }
-}
-
-        // সিস্টেম সেটিংস লোড করুন
-        async function loadSystemSettings() {
-            try {
-                const response = await fetch(`${API_BASE}/system-settings`);
-                if (response.ok) {
-                    const settings = await response.json();
-                    systemSettings = settings;
-                    
-                    // ন্যূনতম উত্তোলন পরিমাণ আপডেট করুন
-                    document.getElementById('minWithdrawAmount').textContent = systemSettings.min_withdraw_amount.toFixed(2);
-                    document.getElementById('withdrawAmount').min = systemSettings.min_withdraw_amount;
-                    
-                    // এডমিন প্যানেলে সেটিংস দেখান
-                    if (userData.is_admin) {
-                        document.getElementById('minWithdrawSetting').value = systemSettings.min_withdraw_amount;
-                    }
-                }
-            } catch (error) {
-                console.error('সিস্টেম সেটিংস লোড করতে ত্রুটি:', error);
-            }
-        }
-
-        // ট্যাব নেভিগেশন সেটআপ
-        function setupTabs() {
-            const tabs = document.querySelectorAll('.tab');
-            tabs.forEach(tab => {
-                tab.addEventListener('click', () => {
-                    // সক্রিয় ট্যাব আপডেট করুন
-                    tabs.forEach(t => t.classList.remove('active'));
-                    tab.classList.add('active');
-                    
-                    // সক্রিয় কনটেন্ট আপডেট করুন
-                    const tabId = tab.getAttribute('data-tab');
-                    document.querySelectorAll('.tab-content').forEach(content => {
-                        content.classList.remove('active');
-                    });
-                    document.getElementById(tabId).classList.add('active');
-                    
-                    // নির্দিষ্ট ট্যাবের জন্য অতিরিক্ত লোডিং
-                    if (tabId === 'leaderboard') {
-                        loadLeaderboard();
-                    } else if (tabId === 'profile') {
-                        loadProfile();
-                    } else if (tabId === 'withdraw') {
-                        loadWithdrawalHistory();
-                    } else if (tabId === 'referral') {
-                        loadReferralInfo();
-                    } else if (tabId === 'admin') {
-                        loadAdminData();
-                    }
-                });
+    
+    function setupTabs() {
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab.active, .tab-content.active').forEach(el => el.classList.remove('active'));
+                tab.classList.add('active');
+                const tabId = tab.dataset.tab;
+                document.getElementById(tabId).classList.add('active');
+                
+                if (tabId === 'home') loadRewardHistory();
+                if (tabId === 'leaderboard') loadLeaderboard();
+                if (tabId === 'admin') loadAdminData();
             });
-        }
+        });
+    }
 
-        // বিজ্ঞাপন বাটন সেটআপ
-        function setupAdButtons() {
-            const adButtons = ['ad1', 'ad2', 'ad3', 'ad4'];
-            adButtons.forEach(adId => {
-                document.getElementById(adId).addEventListener('click', () => {
-                    watchAd(adId);
-                });
+    function updateUI() {
+        if(document.getElementById('userBalance')) {
+            document.getElementById('userBalance').textContent = parseFloat(userData.balance || 0).toFixed(4);
+        }
+    }
+
+    async function loadRewardHistory() {
+        const historyContainer = document.getElementById('rewardHistory');
+        historyContainer.innerHTML = '<p>লোড হচ্ছে...</p>';
+        try {
+            const response = await fetch(`${API_BASE}/api/reward-history?user_id=${userData.telegram_id}`);
+            if (!response.ok) throw new Error('Network error');
+            const history = await response.json();
+            historyContainer.innerHTML = history.length === 0 ? '<p>কোনো রিওয়ার্ড হিস্টরি নেই।</p>' : 
+                history.map(item => `<div class="history-item"><span>Ad for ${item.ad_id}</span> <span>+${item.amount.toFixed(4)} USDT</span></div>`).join('');
+        } catch (error) {
+            historyContainer.innerHTML = '<p>হিস্টরি লোড করা যায়নি।</p>';
+        }
+    }
+    
+    function setupAdButtons() {
+        document.querySelectorAll('.ad-btn').forEach(btn => btn.addEventListener('click', () => watchAd(btn.id)));
+    }
+
+    async function watchAd(adId) {
+        const adBtn = document.getElementById(adId);
+        adBtn.textContent = 'লোড হচ্ছে...';
+        adBtn.disabled = true;
+        try {
+            const response = await fetch(`${API_BASE}/api/watch-ad`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userData.telegram_id, ad_id: adId })
             });
-        }
-
-        // বিজ্ঞাপন দেখার ফাংশন
-        async function watchAd(adId) {
-            try {
-                // SDK লোড করুন এবং বিজ্ঞাপন দেখান
-                const sdkUrl = adSdks[adId];
-                if (sdkUrl) {
-                    // লোডিং ইফেক্ট
-                    const adBtn = document.getElementById(adId);
-                    const originalText = adBtn.textContent;
-                    adBtn.textContent = 'লোড হচ্ছে...';
-                    adBtn.style.opacity = '0.7';
-                    
-                    // সার্ভারে বিজ্ঞাপন দেখার রিকোয়েস্ট পাঠান
-                    const response = await fetch(`${API_BASE}/watch-ad`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `tma ${tg.initData}`
-                        },
-                        body: JSON.stringify({
-                            ad_id: adId
-                        })
-                    });
-                    
-                    if (response.ok) {
-                        const result = await response.json();
-                        
-                        // ব্যালেন্স আপডেট করুন
-                        userData.balance = result.balance;
-                        userData.adsWatched = result.ads_watched;
-                        userData.earned = result.total_earned;
-                        
-                        // UI আপডেট করুন
-                        updateUI();
-                        
-                        // রিওয়ার্ড হিস্টরি আপডেট করুন
-                        loadRewardHistory();
-                        
-                        alert(`সফলভাবে বিজ্ঞাপন দেখেছেন! আপনি পেয়েছেন ${result.reward} USDT`);
-                    } else {
-                        alert('বিজ্ঞাপন দেখতে সমস্যা হয়েছে। পরে আবার চেষ্টা করুন।');
-                    }
-                    
-                    // বিজ্ঞাপন বাটন রিসেট করুন
-                    adBtn.textContent = originalText;
-                    adBtn.style.opacity = '1';
-                } else {
-                    alert('এই বিজ্ঞাপনটি এখন উপলব্ধ নেই।');
-                }
-            } catch (error) {
-                console.error('বিজ্ঞাপন দেখতে ত্রুটি:', error);
-                alert('নেটওয়ার্ক ত্রুটি। পরে আবার চেষ্টা করুন।');
-            }
-        }
-
-        // উত্তোলন সিস্টেম সেটআপ
-        function setupWithdrawal() {
-            document.getElementById('withdrawBtn').addEventListener('click', async () => {
-                const amount = parseFloat(document.getElementById('withdrawAmount').value);
-                const method = document.getElementById('withdrawMethod').value;
-                const account = document.getElementById('accountNumber').value;
-                
-                if (!amount || amount <= 0) {
-                    alert('দয়া করে একটি বৈধ উত্তোলনের পরিমাণ লিখুন।');
-                    return;
-                }
-                
-                if (amount < systemSettings.min_withdraw_amount) {
-                    alert(`ন্যূনতম উত্তোলন পরিমাণ ${systemSettings.min_withdraw_amount} USDT`);
-                    return;
-                }
-                
-                if (amount > userData.balance) {
-                    alert('আপনার পর্যাপ্ত ব্যালেন্স নেই।');
-                    return;
-                }
-                
-                if (!account) {
-                    alert('দয়া করে আপনার অ্যাকাউন্ট নম্বর লিখুন।');
-                    return;
-                }
-                
-                try {
-                    // উত্তোলন রিকোয়েস্ট পাঠান
-                    const response = await fetch(`${API_BASE}/withdraw`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `tma ${tg.initData}`
-                        },
-                        body: JSON.stringify({
-                            amount: amount,
-                            method: method,
-                            account: account
-                        })
-                    });
-                    
-                    if (response.ok) {
-                        const result = await response.json();
-                        
-                        // ব্যালেন্স আপডেট করুন
-                        userData.balance = result.balance;
-                        
-                        // UI আপডেট করুন
-                        updateUI();
-                        
-                        // উত্তোলন হিস্টরি আপডেট করুন
-                        loadWithdrawalHistory();
-                        
-                        alert(`আপনার উত্তোলন অনুরোধ প্রক্রিয়াধীন রয়েছে। ${amount} USDT`);
-                        
-                        // ফর্ম রিসেট করুন
-                        document.getElementById('withdrawAmount').value = '';
-                        document.getElementById('accountNumber').value = '';
-                    } else {
-                        const error = await response.json();
-                        alert(error.error || 'উত্তোলন করতে সমস্যা হয়েছে। পরে আবার চেষ্টা করুন।');
-                    }
-                } catch (error) {
-                    console.error('উত্তোলন ত্রুটি:', error);
-                    alert('নেটওয়ার্ক ত্রুটি। পরে আবার চেষ্টা করুন।');
-                }
-            });
-            
-            // পদ্ধতি পরিবর্তন হলে অ্যাকাউন্ট নম্বর ফিল্ড আপডেট করুন
-            document.getElementById('withdrawMethod').addEventListener('change', function() {
-                const method = this.value;
-                const accountField = document.getElementById('accountNumberField');
-                
-                if (method === 'usdt') {
-                    accountField.querySelector('label').textContent = 'USDT ওয়ালেট ঠিকানা';
-                    document.getElementById('accountNumber').placeholder = 'আপনার USDT ওয়ালেট ঠিকানা লিখুন';
-                } else {
-                    accountField.querySelector('label').textContent = 'অ্যাকাউন্ট নম্বর';
-                    document.getElementById('accountNumber').placeholder = 'আপনার অ্যাকাউন্ট নম্বর লিখুন';
-                }
-            });
-        }
-
-        // রেফারেল সিস্টেম সেটআপ
-        function setupReferral() {
-            // রেফারেল লিংক সেট করুন
-            const referralLink = `https://t.me/YourBotName?start=${userData.id}`;
-            document.getElementById('referralLink').textContent = referralLink;
-            
-            // লিংক কপি বাটন
-            document.getElementById('copyLinkBtn').addEventListener('click', () => {
-                navigator.clipboard.writeText(referralLink)
-                    .then(() => alert('রেফারেল লিংক কপি করা হয়েছে!'))
-                    .catch(err => console.error('লিংক কপি করতে সমস্যা হয়েছে:', err));
-            });
-            
-            // URL প্যারামিটার চেক করুন যাতে রেফারেল কোড আছে কিনা
-            const urlParams = new URLSearchParams(window.location.search);
-            const refCode = urlParams.get('ref');
-            if (refCode && refCode !== userData.id.toString()) {
-                // রেফারেল বোনাস দিন
-                applyReferralBonus(refCode);
-            }
-        }
-
-        // রেফারেল বোনাস প্রয়োগ করুন
-        async function applyReferralBonus(refCode) {
-            try {
-                const response = await fetch(`${API_BASE}/apply-referral`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `tma ${tg.initData}`
-                    },
-                    body: JSON.stringify({
-                        referrer_id: refCode
-                    })
-                });
-                
-                if (response.ok) {
-                    const result = await response.json();
-                    if (result.success) {
-                        userData.balance += 0.01;
-                        updateUI();
-                        alert('রেফারেল বোনাস পেয়েছেন! 0.01 USDT');
-                    }
-                }
-            } catch (error) {
-                console.error('রেফারেল বোনাস প্রয়োগ করতে ত্রুটি:', error);
-            }
-        }
-
-        // থিম স্যুইচ সেটআপ
-        function setupTheme() {
-            const themeSwitch = document.getElementById('themeSwitch');
-            
-            // পূর্বনির্ধারিত থিম সেট করুন
-            if (userData.theme === 'dark') {
-                document.documentElement.setAttribute('data-theme', 'dark');
-                themeSwitch.checked = true;
-            } else {
-                document.documentElement.setAttribute('data-theme', 'light');
-                themeSwitch.checked = false;
-            }
-            
-            // থিম স্যুইচ ইভেন্ট
-            themeSwitch.addEventListener('change', async function() {
-                const newTheme = this.checked ? 'dark' : 'light';
-                
-                try {
-                    // থিম আপডেট করুন সার্ভারে
-                    const response = await fetch(`${API_BASE}/update-theme`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `tma ${tg.initData}`
-                        },
-                        body: JSON.stringify({
-                            theme: newTheme
-                        })
-                    });
-                    
-                    if (response.ok) {
-                        document.documentElement.setAttribute('data-theme', newTheme);
-                        userData.theme = newTheme;
-                    }
-                } catch (error) {
-                    console.error('থিম আপডেট করতে ত্রুটি:', error);
-                }
-            });
-        }
-
-        // এডমিন প্যানেল সেটআপ
-        function setupAdminPanel() {
-            // SDK সেভ বাটন
-            document.getElementById('saveSdkBtn').addEventListener('click', async () => {
-                const newSdks = {
-                    ad1: document.getElementById('ad1Sdk').value,
-                    ad2: document.getElementById('ad2Sdk').value,
-                    ad3: document.getElementById('ad3Sdk').value,
-                    ad4: document.getElementById('ad4Sdk').value
-                };
-                
-                try {
-                    // SDK কনফিগারেশন সেভ করুন
-                    const response = await fetch(`${API_BASE}/api/admin/update-sdks`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `tma ${tg.initData}`
-                        },
-                        body: JSON.stringify(newSdks)
-                    });
-                    
-                    if (response.ok) {
-                        adSdks = newSdks;
-                        alert('SDK কনফিগারেশন সফলভাবে সেভ করা হয়েছে!');
-                    } else {
-                        alert('SDK সেভ করতে সমস্যা হয়েছে।');
-                    }
-                } catch (error) {
-                    console.error('SDK সেভ করতে ত্রুটি:', error);
-                    alert('নেটওয়ার্ক ত্রুটি। পরে আবার চেষ্টা করুন।');
-                }
-            });
-            
-            // ন্যূনতম উত্তোলন পরিমাণ সেভ বাটন
-            document.getElementById('saveMinWithdrawBtn').addEventListener('click', async () => {
-                const minWithdraw = parseFloat(document.getElementById('minWithdrawSetting').value);
-                
-                if (!minWithdraw || minWithdraw < 0) {
-                    alert('দয়া করে একটি বৈধ ন্যূনতম উত্তোলন পরিমাণ লিখুন।');
-                    return;
-                }
-                
-                try {
-                    const response = await fetch(`${API_BASE}/admin/update-min-withdraw`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `tma ${tg.initData}`
-                        },
-                        body: JSON.stringify({
-                            min_withdraw_amount: minWithdraw
-                        })
-                    });
-                    
-                    if (response.ok) {
-                        systemSettings.min_withdraw_amount = minWithdraw;
-                        document.getElementById('minWithdrawAmount').textContent = minWithdraw.toFixed(2);
-                        document.getElementById('withdrawAmount').min = minWithdraw;
-                        alert('ন্যূনতম উত্তোলন পরিমাণ সফলভাবে আপডেট করা হয়েছে!');
-                    } else {
-                        alert('ন্যূনতম উত্তোলন পরিমাণ আপডেট করতে সমস্যা হয়েছে।');
-                    }
-                } catch (error) {
-                    console.error('ন্যূনতম উত্তোলন পরিমাণ আপডেট করতে ত্রুটি:', error);
-                    alert('নেটওয়ার্ক ত্রুটি। পরে আবার চেষ্টা করুন।');
-                }
-            });
-        }
-
-        // UI আপডেট করার ফাংশন
-        function updateUI() {
-            // ব্যালেন্স আপডেট করুন
-            document.getElementById('userBalance').textContent = userData.balance.toFixed(4);
-            
-            // রিওয়ার্ড হিস্টরি লোড করুন
+            if (!response.ok) throw new Error('Failed to process ad watch');
+            const result = await response.json();
+            userData.balance = result.balance;
+            alert(`সফল! আপনি পেয়েছেন ${result.reward.toFixed(4)} USDT`);
+            updateUI();
             loadRewardHistory();
+        } catch (error) {
+            alert('বিজ্ঞাপন দেখতে সমস্যা হয়েছে।');
+        } finally {
+            adBtn.textContent = `বিজ্ঞাপন ${adId.replace('ad','')}`;
+            adBtn.disabled = false;
         }
-
-        // রিওয়ার্ড হিস্টরি লোড করার ফাংশন
-        async function loadRewardHistory() {
+    }
+    
+    async function loadLeaderboard() {
+        const leaderboardContainer = document.getElementById('leaderboardList');
+        leaderboardContainer.innerHTML = '<p>লোড হচ্ছে...</p>';
+        try {
+            const response = await fetch(`${API_BASE}/api/leaderboard`);
+            if (!response.ok) throw new Error('Network error');
+            const leaderboard = await response.json();
+            leaderboardContainer.innerHTML = leaderboard.length === 0 ? '<p>লিডারবোর্ডে কোনো তথ্য নেই।</p>' :
+                leaderboard.map((user, index) => `<div class="leaderboard-item"><span>#${index + 1} ${user.first_name || user.username}</span> <span>${parseFloat(user.total_earned).toFixed(4)} USDT</span></div>`).join('');
+        } catch (error) {
+            leaderboardContainer.innerHTML = '<p>লিডারবোর্ড লোড করা যায়নি।</p>';
+        }
+    }
+    
+    function setupAdminPanel() {
+        document.getElementById('saveSdkBtn').addEventListener('click', async () => {
+            const sdks = {
+                ad1: document.getElementById('ad1Sdk').value, ad2: document.getElementById('ad2Sdk').value,
+                ad3: document.getElementById('ad3Sdk').value, ad4: document.getElementById('ad4Sdk').value,
+                user_id: userData.telegram_id
+            };
             try {
-               const response = await fetch(`${API_BASE}/api/reward-history`, {
-                    headers: {
-                        'Authorization': `tma ${tg.initData}`
-                    }
+                const response = await fetch(`${API_BASE}/api/admin/update-sdks`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(sdks)
                 });
-                
-                if (response.ok) {
-                    const history = await response.json();
-                    const historyContainer = document.getElementById('rewardHistory');
-                    
-                    if (history.length === 0) {
-                        historyContainer.innerHTML = '<p>কোনো রিওয়ার্ড হিস্টরি নেই।</p>';
-                        return;
-                    }
-                    
-                    let html = '';
-                    history.slice(-10).reverse().forEach(item => {
-                        html += `
-                            <div class="history-item">
-                                <div>বিজ্ঞাপন ${item.ad_id}</div>
-                                <div>+${item.amount} USDT</div>
-                                <div>${new Date(item.created_at).toLocaleString()}</div>
-                            </div>
-                        `;
-                    });
-                    
-                    historyContainer.innerHTML = html;
-                }
+                if (!response.ok) throw new Error('Failed to save');
+                alert('SDK সফলভাবে সেভ করা হয়েছে!');
             } catch (error) {
-                console.error('রিওয়ার্ড হিস্টরি লোড করতে ত্রুটি:', error);
+                alert('SDK সেভ করতে সমস্যা হয়েছে।');
             }
-        }
+        });
+    }
 
-        // উত্তোলন হিস্টরি লোড করার ফUNCTION
-        async function loadWithdrawalHistory() {
-            try {
-                const response = await fetch(`${API_BASE}/withdrawal-history`, {
-                    headers: {
-                        'Authorization': `tma ${tg.initData}`
-                    }
-                });
-                
-                if (response.ok) {
-                    const history = await response.json();
-                    const historyContainer = document.getElementById('withdrawHistory');
-                    
-                    if (history.length === 0) {
-                        historyContainer.innerHTML = '<p>কোনো উত্তোলন হিস্টরি নেই।</p>';
-                        return;
-                    }
-                    
-                    let html = '';
-                    history.slice(-10).reverse().forEach(item => {
-                        const statusClass = `status-${item.status}`;
-                        html += `
-                            <div class="history-item">
-                                <div>${item.method} - ${item.account_number}</div>
-                                <div>-${item.amount} USDT</div>
-                                <div class="${statusClass}">${item.status}</div>
-                                <div>${new Date(item.created_at).toLocaleString()}</div>
-                            </div>
-                        `;
-                    });
-                    
-                    historyContainer.innerHTML = html;
-                }
-            } catch (error) {
-                console.error('উত্তোলন হিস্টরি লোড করতে ত্রুটি:', error);
-            }
-        }
-
-        // রেফারেল তথ্য লোড করার ফাংশন
-        async function loadReferralInfo() {
-            try {
-                const response = await fetch(`${API_BASE}/referral-info`, {
-                    headers: {
-                        'Authorization': `tma ${tg.initData}`
-                    }
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    const historyContainer = document.getElementById('referralHistory');
-                    
-                    if (data.referrals.length === 0) {
-                        historyContainer.innerHTML = '<p>কোনো রেফারেল হিস্টরি নেই।</p>';
-                        return;
-                    }
-                    
-                    let html = '';
-                    data.referrals.slice(-10).reverse().forEach(item => {
-                        html += `
-                            <div class="history-item">
-                                <div>রেফারেল বোনাস</div>
-                                <div>+${item.amount} USDT</div>
-                                <div>${new Date(item.created_at).toLocaleString()}</div>
-                            </div>
-                        `;
-                    });
-                    
-                    historyContainer.innerHTML = html;
-                }
-            } catch (error) {
-                console.error('রেফারেল তথ্য লোড করতে ত্রুটি:', error);
-            }
-        }
-
-        // লিডারবোর্ড লোড করার ফাংশন
-        async function loadLeaderboard() {
-            try {
-                const response = await fetch(`${API_BASE}/leaderboard`);
-                
-                if (response.ok) {
-                    const leaderboard = await response.json();
-                    const leaderboardContainer = document.getElementById('leaderboardList');
-                    
-                    let html = '';
-                    leaderboard.forEach((user, index) => {
-                        const isCurrentUser = user.telegram_id === userData.id;
-                        html += `
-                            <div class="leaderboard-item" style="${isCurrentUser ? 'background-color: var(--card-bg);' : ''}">
-                                <div>
-                                    <span class="leaderboard-rank">#${index + 1}</span>
-                                    <span>${isCurrentUser ? 'You' : user.username}</span>
-                                </div>
-                                <div>${user.ads_watched} ads - ${user.total_earned.toFixed(2)} USDT</div>
-                            </div>
-                        `;
-                    });
-                    
-                    leaderboardContainer.innerHTML = html;
-                }
-            } catch (error) {
-                console.error('লিডারবোর্ড লোড করতে ত্রুটি:', error);
-            }
-        }
-
-        // প্রোফাইল লোড করার ফাংশন
-        async function loadProfile() {
-            const profileContainer = document.getElementById('userProfile');
-            
-            const html = `
-                <div class="history-item">
-                    <div>নাম:</div>
-                    <div>${userData.first_name} ${userData.last_name}</div>
-                </div>
-                <div class="history-item">
-                    <div>ব্যবহারকারী আইডি:</div>
-                    <div>${userData.id}</div>
-                </div>
-                <div class="history-item">
-                    <div>মোট আয়:</div>
-                    <div>${userData.earned.toFixed(4)} USDT</div>
-                </div>
-                <div class="history-item">
-                    <div>দেখা বিজ্ঞাপন:</div>
-                    <div>${userData.adsWatched}</div>
-                </div>
-                <div class="history-item">
-                    <div>রেফার করা用户:</div>
-                    <div>${userData.referred}</div>
-                </div>
+    async function loadAdminData() {
+        // Admin Stats
+        const statsContainer = document.getElementById('systemStats');
+        statsContainer.innerHTML = '<p>লোড হচ্ছে...</p>';
+        try {
+            const response = await fetch(`${API_BASE}/api/admin/stats?user_id=${userData.telegram_id}`);
+            if (!response.ok) throw new Error('Failed to load stats');
+            const stats = await response.json();
+            statsContainer.innerHTML = `
+                <div class="history-item"><span>মোট ব্যবহারকারী:</span> <span>${stats.total_users}</span></div>
+                <div class="history-item"><span>মোট বিজ্ঞাপন দেখা:</span> <span>${stats.total_ads_watched}</span></div>
             `;
-            
-            profileContainer.innerHTML = html;
+        } catch(error) {
+            statsContainer.innerHTML = '<p>সিস্টেম স্ট্যাটাস লোড করা যায়নি।</p>';
         }
 
-        // এডমিন ডেটা লোড করার ফাংশন
-        async function loadAdminData() {
-            try {
-                // SDK মানগুলো লোড করুন
-                const response = await fetch(`${API_BASE}/admin/sdks`, {
-                    headers: {
-                        'Authorization': `tma ${tg.initData}`
-                    }
-                });
-                
-                if (response.ok) {
-                    const sdks = await response.json();
-                    document.getElementById('ad1Sdk').value = sdks.ad1;
-                    document.getElementById('ad2Sdk').value = sdks.ad2;
-                    document.getElementById('ad3Sdk').value = sdks.ad3;
-                    document.getElementById('ad4Sdk').value = sdks.ad4;
-                    
-                    adSdks = sdks;
-                }
-                
-                // সিস্টেম স্ট্যাটাস লোড করুন
-                const statsResponse = await fetch(`${API_BASE}/admin/stats`, {
-                    headers: {
-                        'Authorization': `tma ${tg.initData}`
-                    }
-                });
-                
-                if (statsResponse.ok) {
-                    const stats = await statsResponse.json();
-                    const statsContainer = document.getElementById('systemStats');
-                    
-                    const html = `
-                        <div class="history-item">
-                            <div>মোট ব্যবহারকারী:</div>
-                            <div>${stats.total_users}</div>
-                        </div>
-                        <div class="history-item">
-                            <div>মোট বিজ্ঞাপন দেখা:</div>
-                            <div>${stats.total_ads_watched}</div>
-                        </div>
-                        <div class="history-item">
-                            <div>মোট উত্তোলন:</div>
-                            <div>${stats.total_withdrawals} USDT</div>
-                        </div>
-                        <div class="history-item">
-                            <div>মোট রেফারেল:</div>
-                            <div>${stats.total_referrals}</div>
-                        </div>
-                    `;
-                    
-                    statsContainer.innerHTML = html;
-                }
-                
-                // উত্তোলন রিকোয়েস্ট লোড করুন
-                await loadWithdrawalRequests();
-            } catch (error) {
-                console.error('এডমিন ডেটা লোড করতে ত্রুটি:', error);
-            }
+        // Withdrawal Requests
+        const requestsContainer = document.getElementById('withdrawalRequests');
+        requestsContainer.innerHTML = '<p>লোড হচ্ছে...</p>';
+        try {
+            const response = await fetch(`${API_BASE}/api/admin/withdrawal-requests?user_id=${userData.telegram_id}`);
+            if (!response.ok) throw new Error('Failed to load requests');
+            const requests = await response.json();
+            requestsContainer.innerHTML = requests.length === 0 ? '<p>কোনো পেন্ডিং রিকোয়েস্ট নেই।</p>' :
+                requests.map(req => `<div class="withdrawal-item"><strong>User:</strong> ${req.username} (${req.user_id})<br><strong>Amount:</strong> ${req.amount} USDT<br><strong>Method:</strong> ${req.method}<br><strong>Account:</strong> ${req.account_number}</div>`).join('');
+        } catch (error) {
+            requestsContainer.innerHTML = '<p>রিকোয়েস্ট লোড করা যায়নি।</p>';
         }
-
-        // উত্তোলন রিকোয়েস্ট লোড করার ফাংশন
-        async function loadWithdrawalRequests() {
-            try {
-                const response = await fetch(`${API_BASE}/admin/withdrawal-requests`, {
-                    headers: {
-                        'Authorization': `tma ${tg.initData}`
-                    }
-                });
-                
-                if (response.ok) {
-                    const requests = await response.json();
-                    const requestsContainer = document.getElementById('withdrawalRequests');
-                    
-                    if (requests.length === 0) {
-                        requestsContainer.innerHTML = '<p>কোনো উত্তোলন রিকোয়েস্ট নেই।</p>';
-                        return;
-                    }
-                    
-                    let html = '';
-                    requests.forEach(request => {
-                        const statusClass = `status-${request.status}`;
-                        html += `
-                            <div class="withdrawal-item">
-                                <div><strong>ব্যবহারকারী:</strong> ${request.username} (ID: ${request.user_id})</div>
-                                <div><strong>পরিমাণ:</strong> ${request.amount} USDT</div>
-                                <div><strong>পদ্ধতি:</strong> ${request.method}</div>
-                                <div><strong>অ্যাকাউন্ট:</strong> ${request.account_number}</div>
-                                <div><strong>স্ট্যাটাস:</strong> <span class="${statusClass}">${request.status}</span></div>
-                                <div><strong>তারিখ:</strong> ${new Date(request.created_at).toLocaleString()}</div>
-                                ${request.status === 'pending' ? `
-                                <div class="withdrawal-actions">
-                                    <button class="btn btn-success" onclick="approveWithdrawal(${request.id})">অনুমোদন করুন</button>
-                                    <button class="btn btn-error" onclick="rejectWithdrawal(${request.id})">প্রত্যাখ্যান করুন</button>
-                                </div>
-                                ` : ''}
-                            </div>
-                        `;
-                    });
-                    
-                    requestsContainer.innerHTML = html;
-                }
-            } catch (error) {
-                console.error('উত্তোলন রিকোয়েস্ট লোড করতে ত্রুটি:', error);
-            }
-        }
-
-        // উত্তোলন অনুমোদন করুন
-        async function approveWithdrawal(requestId) {
-            try {
-                const response = await fetch(`${API_BASE}/admin/approve-withdrawal`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `tma ${tg.initData}`
-                    },
-                    body: JSON.stringify({
-                        request_id: requestId
-                    })
-                });
-                
-                if (response.ok) {
-                    alert('উত্তোলন অনুমোদন করা হয়েছে!');
-                    loadWithdrawalRequests();
-                } else {
-                    alert('উত্তোলন অনুমোদন করতে সমস্যা হয়েছে।');
-                }
-            } catch (error) {
-                console.error('উত্তোলন অনুমোদন করতে ত্রুটি:', error);
-                alert('নেটওয়ার্ক ত্রুটি। পরে আবার চেষ্টা করুন।');
-            }
-        }
-
-        // উত্তোলন প্রত্যাখ্যান করুন
-        async function rejectWithdrawal(requestId) {
-            try {
-                const response = await fetch(`${API_BASE}/admin/reject-withdrawal`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `tma ${tg.initData}`
-                    },
-                    body: JSON.stringify({
-                        request_id: requestId
-                    })
-                });
-                
-                if (response.ok) {
-                    alert('উত্তোলন প্রত্যাখ্যান করা হয়েছে!');
-                    loadWithdrawalRequests();
-                } else {
-                    alert('উত্তোলন প্রত্যাখ্যান করতে সমস্যা হয়েছে।');
-                }
-            } catch (error) {
-                console.error('উত্তোলন প্রত্যাখ্যান করতে ত্রুটি:', error);
-                alert('নেটওয়ার্ক ত্রুটি। পরে আবার চেষ্টা করুন।');
-            }
-        }
-
-        // টেলিগ্রাম বটের সাথে ইন্টিগ্রেশন
-        tg.ready();
-    </script>
+    }
+</script>
 </body>
 </html>
